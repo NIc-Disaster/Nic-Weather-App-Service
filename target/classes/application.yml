@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: weather-map-app
+  datasource:
+    url: ${DB_URL:jdbc:h2:mem:weatherdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+
+server:
+  port: ${SERVER_PORT:8080}
+
+weather:
+  scheduler:
+    cron: ${WEATHER_SYNC_CRON:0 0 1 * * *}
+  api:
+    auth-url: ${WEATHER_AUTH_URL:https://example.com/api/auth/token}
+    weather-url: ${WEATHER_DATA_URL:https://example.com/api/weather/districts}
+    client-id: ${WEATHER_CLIENT_ID:demo-client}
+    client-secret: ${WEATHER_CLIENT_SECRET:demo-secret}
+
+app:
+  seed-demo-data: ${APP_SEED_DEMO_DATA:true}
+
+logging:
+  level:
+    com.example.weathermap: INFO

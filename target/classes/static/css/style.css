@@ -1,0 +1,138 @@
+body {
+    font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+.dashboard-hero {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(120deg, #111827 0%, #1f2937 55%, #334155 100%);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    box-shadow: 0 12px 30px rgba(2, 6, 23, 0.35);
+    padding: 1.5rem;
+}
+
+.hero-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+            radial-gradient(circle at 82% 22%, rgba(110, 180, 63, 0.22), transparent 42%),
+            radial-gradient(circle at 12% 92%, rgba(96, 165, 250, 0.16), transparent 36%);
+    pointer-events: none;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+}
+
+.eyebrow {
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.dashboard-menu .menu-pill {
+    border: none;
+    padding: 0.42rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-menu .menu-pill:hover {
+    background: rgba(255, 255, 255, 0.32);
+    transform: translateY(-1px);
+}
+
+.dashboard-menu .menu-pill.active {
+    background: #6eb43f;
+    color: #ffffff;
+}
+
+.hero-stats .stat-chip {
+    min-width: 96px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.65rem;
+    background: rgba(255, 255, 255, 0.16);
+    backdrop-filter: blur(8px);
+}
+
+.hero-stats .stat-label {
+    display: block;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.hero-stats .stat-value {
+    display: block;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.section-panel {
+    scroll-margin-top: 1rem;
+}
+
+.map-shell {
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid #dbe4f0;
+}
+
+.map-object {
+    width: 100%;
+    min-height: 520px;
+    background: #f4f7fb;
+}
+
+#district-map-container svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+#district-map {
+    width: 100%;
+    height: auto;
+}
+
+#district-map .district path {
+    fill: #cfe2ff;
+    stroke: #0d6efd;
+    stroke-width: 2;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+}
+
+#district-map .district text {
+    font-size: 20px;
+    font-weight: 600;
+    fill: #0b2f6b;
+    text-anchor: middle;
+    pointer-events: none;
+}
+
+#district-map .district:hover path,
+#district-map .district.active path {
+    fill: #0d6efd;
+    stroke: #083b8a;
+}
+
+#district-map .district:hover text,
+#district-map .district.active text {
+    fill: #ffffff;
+}
+
+.station-panel {
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+}
