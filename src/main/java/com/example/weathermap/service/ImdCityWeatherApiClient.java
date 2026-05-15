@@ -31,6 +31,7 @@ public class ImdCityWeatherApiClient {
             return Optional.of(ImdMockResponses.city(stationId, objectMapper));
         }
         return httpFetcher.fetch(
+                "city-weather",
                 imdApiProperties.city().baseUrl(),
                 "id",
                 stationId,

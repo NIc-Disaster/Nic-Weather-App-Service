@@ -23,6 +23,7 @@ public class AwsDataApiClient {
             return Optional.empty(); // No mock implemented yet
         }
         return httpFetcher.fetch(
+                "aws-data",
                 imdApiProperties.awsData().baseUrl(),
                 "id",
                 stationId,

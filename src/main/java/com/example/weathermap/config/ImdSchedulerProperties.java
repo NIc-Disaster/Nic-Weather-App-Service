@@ -22,7 +22,7 @@ public record ImdSchedulerProperties(
             dailyRetryIntervalMs = 300_000L;
         }
         if (dailyMaxRetries <= 0) {
-            dailyMaxRetries = 12;
+            dailyMaxRetries = 36;
         }
     }
 }

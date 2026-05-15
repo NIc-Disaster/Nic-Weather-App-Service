@@ -24,6 +24,7 @@ public class ImdDistrictWarningApiClient {
             return Optional.of(ImdMockResponses.districtWarning(objId));
         }
         return httpFetcher.fetch(
+                "district-warning",
                 imdApiProperties.districtWarning().baseUrl(),
                 "id",
                 objId,

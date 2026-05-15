@@ -31,6 +31,7 @@ public class ImdNowcastDistrictApiClient {
             return Optional.of(ImdMockResponses.nowcast(objId, objectMapper));
         }
         return httpFetcher.fetch(
+                "nowcast-district",
                 imdApiProperties.nowcast().baseUrl(),
                 "id",
                 objId,

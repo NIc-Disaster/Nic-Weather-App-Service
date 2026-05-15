@@ -1,6 +1,8 @@
 package com.example.weathermap.config;
 
 import java.time.Duration;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.client.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +22,15 @@ public class AppConfig {
     @Bean
     RestClient restClient(RestClient.Builder builder) {
         return builder.build();
+    }
+
+    @Bean(name = "weatherRefreshExecutor")
+    Executor weatherRefreshExecutor() {
+        return Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "weather-api-refresh");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     private static SimpleClientHttpRequestFactory requestFactory(ImdApiProperties properties) {

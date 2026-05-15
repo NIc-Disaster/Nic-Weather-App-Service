@@ -1,6 +1,5 @@
 package com.example.weathermap.service.imd;
 
-import com.example.weathermap.config.ImdSchedulerProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -14,20 +13,25 @@ public class ImdWeatherDataScheduler {
     private static final Logger log = LoggerFactory.getLogger(ImdWeatherDataScheduler.class);
 
     private final ImdWeatherDataRefreshService refreshService;
+    private final DailyDataFreshnessChecker dailyFreshnessChecker;
 
-    public ImdWeatherDataScheduler(ImdWeatherDataRefreshService refreshService) {
+    public ImdWeatherDataScheduler(
+            ImdWeatherDataRefreshService refreshService,
+            DailyDataFreshnessChecker dailyFreshnessChecker
+    ) {
         this.refreshService = refreshService;
+        this.dailyFreshnessChecker = dailyFreshnessChecker;
     }
 
     @Scheduled(cron = "${weather.imd.scheduler.nowcast-cron:0 0 0/3 * * *}")
     public void scheduledNowcastRefresh() {
-        log.debug("Nowcast scheduler triggered");
+        log.info("Nowcast scheduler triggered");
         refreshService.refreshNowcastFromImd();
     }
 
-    @Scheduled(cron = "${weather.imd.scheduler.daily-cron:0 0 1 * * *}")
+    @Scheduled(cron = "${weather.imd.scheduler.daily-cron:0 0 9 * * *}")
     public void scheduledDailyRefresh() {
-        log.debug("Daily IMD scheduler triggered");
-        refreshService.refreshDailyFromImd();
+        log.info("Daily weather scheduler triggered (9 AM)");
+        dailyFreshnessChecker.onDailyScheduleTrigger();
     }
 }

@@ -1,10 +1,8 @@
 const districtDetailCard = document.getElementById("district-detail-card");
 const districtDetailTitle = document.getElementById("district-detail-title");
 const mapPlotTitle = document.getElementById("map-plot-title");
+const nowcastLastUpdatedEl = document.getElementById("nowcast-last-updated");
 const plotModeButtons = document.querySelectorAll(".plot-mode-btn");
-const rainfallLegend = document.getElementById("rainfall-legend");
-const nowcastLegend = document.getElementById("nowcast-legend");
-const warningLegend = document.getElementById("warning-legend");
 const districtMapContainer = document.getElementById("district-map-container");
 
 const NO_DATA_FILL = "#cfe2ff";
@@ -14,6 +12,7 @@ const ACTIVE_EXTRA_STROKE = "#083b8a";
 const PLOT_MODES = ["nowcast", "rainfall", "warning"];
 
 let plotMode = "nowcast";
+let nowcastLastRefreshedAt = null;
 /** @type {Record<string, object>} */
 let nowcastBySlug = {};
 /** @type {Record<string, object>} */
@@ -35,6 +34,44 @@ const toDisplayName = (districtUiId) => String(districtUiId || "")
     .replace(/_/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+
+const formatLastUpdated = (isoInstant) => {
+    if (!isoInstant) {
+        return "Not yet available";
+    }
+    try {
+        return new Date(isoInstant).toLocaleString(undefined, {
+            dateStyle: "medium",
+            timeStyle: "short",
+        });
+    } catch {
+        return "Not yet available";
+    }
+};
+
+const rainfallCategoryLabel = (code) => {
+    const normalized = String(code || "").trim().toUpperCase();
+    switch (normalized) {
+        case "LE":
+            return "Large excess (≥60%)";
+        case "E":
+            return "Excess (20% to 59%)";
+        case "N":
+            return "Normal (-19% to 19%)";
+        case "D":
+            return "Deficient (-59% to -20%)";
+        case "LD":
+            return "Large deficient (-99% to -60%)";
+        case "NR":
+            return "No rain (-100%)";
+        case "ND":
+            return "No data";
+        case "—":
+            return "No data";
+        default:
+            return code || "No data";
+    }
+};
 
 const nowcastStrokeForColorCode = (colorCode) => {
     switch (String(colorCode || "").trim()) {
@@ -136,117 +173,107 @@ const applyDistrictTooltips = () => {
         if (plotMode === "rainfall") {
             const rf = rainfallBySlug[districtUiId];
             ensureTooltipNode(node).textContent = rf
-                ? `${name}: ${rf.dailyActual} mm (${rf.dailyCategory})`
-                : `${name}: No rainfall data`;
+                ? `${name}: ${rf.dailyActual} mm`
+                : name;
             return;
         }
         if (plotMode === "warning") {
             const w = warningBySlug[districtUiId];
-            ensureTooltipNode(node).textContent = w
-                ? `${name}: Day 1 colour ${w.mapColor}`
-                : `${name}: No district warning data`;
+            const day1 = w?.days?.[0];
+            ensureTooltipNode(node).textContent = day1?.warningSummary
+                ? `${name}: ${day1.warningSummary}`
+                : name;
             return;
         }
         const nc = nowcastBySlug[districtUiId];
-        ensureTooltipNode(node).textContent = nc
-            ? `${name}: nowcast level ${nc.color}`
-            : `${name}: No nowcast data`;
+        ensureTooltipNode(node).textContent = nc?.nowcastSummary
+            ? `${name}: ${nc.nowcastSummary}`
+            : name;
     });
+};
+
+const nowcastLastUpdatedBlock = () => {
+    if (!nowcastLastRefreshedAt) {
+        return "";
+    }
+    return `<div class="nowcast-last-updated-card mb-2">
+        <span class="nowcast-last-updated-label">Last updated</span>
+        <span class="nowcast-last-updated-value">${formatLastUpdated(nowcastLastRefreshedAt)}</span>
+    </div>`;
 };
 
 const buildNowcastDetailHtml = (districtUiId) => {
     const nc = nowcastBySlug[districtUiId];
     if (!nc) {
-        return `<span class="text-secondary">No IMD nowcast data for ${toDisplayName(districtUiId)}.</span>`;
+        return `<span class="text-secondary">No nowcast data for ${toDisplayName(districtUiId)}.</span>`;
     }
+    const validWindow = [nc.toi, nc.vupto].filter((v) => v && v !== "—").join(" – ");
     return `
         <h3 class="h6 mb-2">${toDisplayName(districtUiId)}</h3>
-        <p class="small text-uppercase text-secondary mb-2">IMD district nowcast</p>
-        <p><strong>Obj id:</strong> ${nc.objId}</p>
-        <p><strong>District:</strong> ${nc.stateDistrict}</p>
-        <p><strong>Warning date:</strong> ${nc.date}</p>
-        <p><strong>Issued (toi):</strong> ${nc.toi} &nbsp; <strong>Valid till:</strong> ${nc.vupto}</p>
-        <p><strong>Summary:</strong> ${nc.nowcastSummary}</p>
-        <p class="mt-2 mb-0"><strong>Colour code:</strong> ${nc.color}
-            <span style="display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:middle;border:1px solid #333;background:${nc.colorHex}"></span>
-        </p>
+        <p class="small text-uppercase text-secondary mb-2">District nowcast</p>
+        ${nowcastLastUpdatedBlock()}
+        <p><strong>Warning date:</strong> ${nc.date || "—"}</p>
+        ${validWindow ? `<p><strong>Valid:</strong> ${validWindow}</p>` : ""}
+        <p class="mb-0"><strong>Forecast:</strong> ${nc.nowcastSummary || nc.message || "—"}</p>
     `;
 };
 
 const buildRainfallDetailHtml = (districtUiId) => {
     const rf = rainfallBySlug[districtUiId];
     if (!rf) {
-        return `<span class="text-secondary">No IMD rainfall data for ${toDisplayName(districtUiId)}.</span>`;
+        return `<span class="text-secondary">No rainfall data for ${toDisplayName(districtUiId)}.</span>`;
     }
+    const dailyLabel = rf.dailyCategoryLabel || rainfallCategoryLabel(rf.dailyCategory);
     return `
         <h3 class="h6 mb-2">${toDisplayName(districtUiId)}</h3>
-        <p class="small text-uppercase text-secondary mb-2">IMD district rainfall</p>
-        <p><strong>Obj id:</strong> ${rf.objId}</p>
+        <p class="small text-uppercase text-secondary mb-2">District rainfall</p>
         <p><strong>Date:</strong> ${rf.date}</p>
-        <hr class="my-2">
-        <p class="fw-semibold mb-1">Daily</p>
-        <p><strong>Actual:</strong> ${rf.dailyActual} mm &nbsp; <strong>Normal:</strong> ${rf.dailyNormal} mm</p>
-        <p><strong>Departure:</strong> ${rf.dailyDeparturePer} &nbsp; <strong>Category:</strong> ${rf.dailyCategory} (${rf.dailyCategoryLabel})</p>
-        <span style="display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:middle;border:1px solid #333;background:${rf.colorHex}"></span>
-        <hr class="my-2">
-        <p class="fw-semibold mb-1">Weekly (${rf.weekDate})</p>
-        <p><strong>Actual:</strong> ${rf.weeklyActual} mm &nbsp; <strong>Normal:</strong> ${rf.weeklyNormal} mm</p>
-        <p><strong>Departure:</strong> ${rf.weeklyDeparturePer} &nbsp; <strong>Category:</strong> ${rf.weeklyCategory}</p>
-        <hr class="my-2">
-        <p class="fw-semibold mb-1">Cumulative (from ${rf.cumulativeDate})</p>
-        <p><strong>Actual:</strong> ${rf.cumulativeActual} mm &nbsp; <strong>Normal:</strong> ${rf.cumulativeNormal} mm</p>
-        <p><strong>Departure:</strong> ${rf.cumulativeDeparturePer} &nbsp; <strong>Category:</strong> ${rf.cumulativeCategory}</p>
-        <hr class="my-2">
-        <p class="fw-semibold mb-1">Monthly (${rf.monthlyDate})</p>
-        <p><strong>Actual:</strong> ${rf.monthlyActual} mm &nbsp; <strong>Normal:</strong> ${rf.monthlyNormal} mm</p>
-        <p class="mb-0"><strong>Departure:</strong> ${rf.monthlyDeparturePer} &nbsp; <strong>Category:</strong> ${rf.monthlyCategory}</p>
+        <div class="detail-section">
+            <p class="fw-semibold mb-1">Daily</p>
+            <p><strong>Actual:</strong> ${rf.dailyActual} mm &nbsp; <strong>Normal:</strong> ${rf.dailyNormal} mm</p>
+            <p class="mb-0"><strong>Departure:</strong> ${rf.dailyDeparturePer} &nbsp; <strong>Status:</strong> ${dailyLabel}</p>
+        </div>
+        <div class="detail-section">
+            <p class="fw-semibold mb-1">Weekly (${rf.weekDate})</p>
+            <p><strong>Actual:</strong> ${rf.weeklyActual} mm &nbsp; <strong>Normal:</strong> ${rf.weeklyNormal} mm</p>
+            <p class="mb-0"><strong>Departure:</strong> ${rf.weeklyDeparturePer} &nbsp; <strong>Status:</strong> ${rainfallCategoryLabel(rf.weeklyCategory)}</p>
+        </div>
+        <div class="detail-section">
+            <p class="fw-semibold mb-1">Cumulative (from ${rf.cumulativeDate})</p>
+            <p><strong>Actual:</strong> ${rf.cumulativeActual} mm &nbsp; <strong>Normal:</strong> ${rf.cumulativeNormal} mm</p>
+            <p class="mb-0"><strong>Departure:</strong> ${rf.cumulativeDeparturePer} &nbsp; <strong>Status:</strong> ${rainfallCategoryLabel(rf.cumulativeCategory)}</p>
+        </div>
+        <div class="detail-section mb-0">
+            <p class="fw-semibold mb-1">Monthly (${rf.monthlyDate})</p>
+            <p><strong>Actual:</strong> ${rf.monthlyActual} mm &nbsp; <strong>Normal:</strong> ${rf.monthlyNormal} mm</p>
+            <p class="mb-0"><strong>Departure:</strong> ${rf.monthlyDeparturePer} &nbsp; <strong>Status:</strong> ${rainfallCategoryLabel(rf.monthlyCategory)}</p>
+        </div>
     `;
 };
 
 const buildWarningDetailHtml = (districtUiId) => {
     const w = warningBySlug[districtUiId];
     if (!w) {
-        return `<span class="text-secondary">No IMD district warning data for ${toDisplayName(districtUiId)}.</span>`;
+        return `<span class="text-secondary">No district warning data for ${toDisplayName(districtUiId)}.</span>`;
     }
     const dayRows = (w.days || []).map((day) => `
-        <tr>
-            <td class="fw-medium">${day.label}</td>
-            <td class="text-center">
-                <span style="display:inline-block;width:12px;height:12px;border-radius:2px;border:1px solid #333;background:${day.colorHex}"></span>
-                ${day.color}
-            </td>
-            <td>${day.warningCodes}</td>
-            <td class="small text-secondary">${day.warningSummary}</td>
-        </tr>
+        <div class="warning-day-row">
+            <div class="fw-medium warning-day-date">${day.label}</div>
+            <div class="warning-day-text">${day.warningSummary || "No warning"}</div>
+        </div>
     `).join("");
     return `
         <h3 class="h6 mb-2">${toDisplayName(districtUiId)}</h3>
-        <p class="small text-uppercase text-secondary mb-2">IMD district wise warning</p>
-        <p><strong>Obj id:</strong> ${w.objId}</p>
+        <p class="small text-uppercase text-secondary mb-2">District warning</p>
         <p><strong>District:</strong> ${w.district}</p>
-        <p><strong>Date:</strong> ${w.date} &nbsp; <strong>UTC:</strong> ${w.utc}</p>
-        <p><strong>Map colour (Day 1):</strong> ${w.mapColor}
-            <span style="display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:middle;border:1px solid #333;background:${w.colorHex}"></span>
-        </p>
-        <div class="table-responsive mt-2">
-            <table class="table table-sm table-borderless mb-0">
-                <thead class="small text-secondary">
-                    <tr>
-                        <th>Day</th>
-                        <th>Colour</th>
-                        <th>Codes</th>
-                        <th>Warning</th>
-                    </tr>
-                </thead>
-                <tbody>${dayRows}</tbody>
-            </table>
-        </div>
+        <p class="mb-3"><strong>Date:</strong> ${w.date}</p>
+        <div class="warning-days-list">${dayRows}</div>
     `;
 };
 
 const updateDistrictDetailCard = (districtUiId) => {
     if (!districtUiId) {
-        districtDetailCard.innerHTML = "Hover over a district on the map to view details.";
+        districtDetailCard.innerHTML = defaultHoverHint();
         return;
     }
     if (plotMode === "rainfall") {
@@ -259,6 +286,9 @@ const updateDistrictDetailCard = (districtUiId) => {
 };
 
 const defaultHoverHint = () => {
+    if (plotMode === "nowcast" && nowcastLastRefreshedAt) {
+        return `${nowcastLastUpdatedBlock()}<span class="text-secondary">Hover over a district to view nowcast details.</span>`;
+    }
     if (plotMode === "rainfall") {
         return "Hover over a district to view rainfall details.";
     }
@@ -268,31 +298,38 @@ const defaultHoverHint = () => {
     return "Hover over a district to view nowcast details.";
 };
 
+const updateNowcastLastUpdatedBanner = () => {
+    if (!nowcastLastUpdatedEl) {
+        return;
+    }
+    const show = plotMode === "nowcast";
+    nowcastLastUpdatedEl.classList.toggle("d-none", !show);
+    if (!show) {
+        nowcastLastUpdatedEl.innerHTML = "";
+        return;
+    }
+    if (nowcastLastRefreshedAt) {
+        nowcastLastUpdatedEl.innerHTML = `
+            <span class="nowcast-last-updated-label">Last updated</span>
+            <span class="nowcast-last-updated-value">${formatLastUpdated(nowcastLastRefreshedAt)}</span>`;
+    } else {
+        nowcastLastUpdatedEl.innerHTML = `<span class="nowcast-last-updated-label">Last updated</span>
+            <span class="nowcast-last-updated-value text-muted">Not yet available</span>`;
+    }
+};
+
 const updatePlotChrome = () => {
     const isRainfall = plotMode === "rainfall";
     const isWarning = plotMode === "warning";
-    const isNowcast = plotMode === "nowcast";
 
-    mapPlotTitle.textContent = isRainfall
-        ? "Rainfall warning plot"
-        : isWarning
-            ? "District wise warning"
-            : "Nowcast plot";
-
+    mapPlotTitle.textContent = isRainfall ? "Rainfall" : isWarning ? "Warning" : "Nowcast";
     districtDetailTitle.textContent = isRainfall
         ? "Rainfall details"
         : isWarning
             ? "District warning details"
             : "Nowcast details";
 
-    rainfallLegend.classList.toggle("d-none", !isRainfall);
-    rainfallLegend.setAttribute("aria-hidden", String(!isRainfall));
-
-    warningLegend.classList.toggle("d-none", !isWarning);
-    warningLegend.setAttribute("aria-hidden", String(!isWarning));
-
-    nowcastLegend.classList.toggle("d-none", !isNowcast);
-    nowcastLegend.setAttribute("aria-hidden", String(!isNowcast));
+    updateNowcastLastUpdatedBanner();
 
     plotModeButtons.forEach((btn) => {
         const active = btn.dataset.plotMode === plotMode;
@@ -307,6 +344,23 @@ const indexByDistrictKey = (payload) => payload.reduce((acc, row) => {
     }
     return acc;
 }, {});
+
+const loadSyncStatus = async () => {
+    try {
+        const response = await fetch("/api/weather/sync-status");
+        if (!response.ok) {
+            return;
+        }
+        const data = await response.json();
+        nowcastLastRefreshedAt = data.nowcastLastRefreshedAt || null;
+    } catch {
+        nowcastLastRefreshedAt = null;
+    }
+    updateNowcastLastUpdatedBanner();
+    if (plotMode === "nowcast" && activeDistrictUiId) {
+        updateDistrictDetailCard(activeDistrictUiId);
+    }
+};
 
 const loadNowcastMapData = async () => {
     try {
@@ -411,7 +465,12 @@ const init = async () => {
         await injectInlineSvg();
         setupDistrictNodes();
         wireMapHover();
-        await Promise.all([loadNowcastMapData(), loadRainfallMapData(), loadWarningMapData()]);
+        await Promise.all([
+            loadSyncStatus(),
+            loadNowcastMapData(),
+            loadRainfallMapData(),
+            loadWarningMapData(),
+        ]);
         repaintAllDistrictPaths();
         applyDistrictTooltips();
 

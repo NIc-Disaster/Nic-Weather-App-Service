@@ -24,6 +24,7 @@ public class ImdDistrictRainfallApiClient {
             return Optional.of(ImdMockResponses.rainfall(objId));
         }
         return httpFetcher.fetch(
+                "district-rainfall",
                 imdApiProperties.rainfall().baseUrl(),
                 "id",
                 objId,

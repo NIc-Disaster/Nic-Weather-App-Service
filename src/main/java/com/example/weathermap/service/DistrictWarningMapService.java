@@ -5,6 +5,7 @@ import com.example.weathermap.dto.DistrictWarningMapPointResponse.WarningDayDto;
 import com.example.weathermap.dto.ImdDistrictWarningResponse;
 import com.example.weathermap.service.imd.ImdWeatherDataCache;
 import com.example.weathermap.util.DistrictNameNormalizer;
+import com.example.weathermap.util.ForecastDayLabels;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -51,11 +52,11 @@ public class DistrictWarningMapService {
 
     private static List<WarningDayDto> buildDays(ImdDistrictWarningResponse r) {
         List<WarningDayDto> days = new ArrayList<>(5);
-        days.add(dayRow(1, "Day 1", r.day1(), r.day1Color()));
-        days.add(dayRow(2, "Day 2", r.day2(), r.day2Color()));
-        days.add(dayRow(3, "Day 3", r.day3(), r.day3Color()));
-        days.add(dayRow(4, "Day 4", r.day4(), r.day4Color()));
-        days.add(dayRow(5, "Day 5", r.day5(), r.day5Color()));
+        days.add(dayRow(1, ForecastDayLabels.fromTodayPlusDays(1), r.day1(), r.day1Color()));
+        days.add(dayRow(2, ForecastDayLabels.fromTodayPlusDays(2), r.day2(), r.day2Color()));
+        days.add(dayRow(3, ForecastDayLabels.fromTodayPlusDays(3), r.day3(), r.day3Color()));
+        days.add(dayRow(4, ForecastDayLabels.fromTodayPlusDays(4), r.day4(), r.day4Color()));
+        days.add(dayRow(5, ForecastDayLabels.fromTodayPlusDays(5), r.day5(), r.day5Color()));
         return days;
     }
 

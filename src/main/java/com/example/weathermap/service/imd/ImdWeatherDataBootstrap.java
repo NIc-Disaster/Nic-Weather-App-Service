@@ -1,7 +1,9 @@
 package com.example.weathermap.service.imd;
 
+import java.util.concurrent.Executor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -14,38 +16,40 @@ public class ImdWeatherDataBootstrap {
     private final ImdWeatherDataRefreshService refreshService;
     private final WeatherSnapshotStore snapshotStore;
     private final ImdWeatherDataCache cache;
+    private final Executor weatherRefreshExecutor;
 
     public ImdWeatherDataBootstrap(
             ImdWeatherDataRefreshService refreshService,
             WeatherSnapshotStore snapshotStore,
-            ImdWeatherDataCache cache
+            ImdWeatherDataCache cache,
+            @Qualifier("weatherRefreshExecutor") Executor weatherRefreshExecutor
     ) {
         this.refreshService = refreshService;
         this.snapshotStore = snapshotStore;
         this.cache = cache;
+        this.weatherRefreshExecutor = weatherRefreshExecutor;
     }
 
     @EventListener(ApplicationReadyEvent.class)
     public void warmCacheOnStartup() {
-        log.info("Loading latest weather snapshots from H2");
+        log.info("Loading weather snapshots from H2 into memory");
         snapshotStore.loadAllIntoCache(cache);
+        log.info(
+                "H2 cache ready: nowcast={}, rainfall={}, warnings={}, cities={}",
+                cache.getNowcastMap().size(),
+                cache.getRainfallMap().size(),
+                cache.getDistrictWarningMap().size(),
+                cache.getCityWeatherPanels().size()
+        );
 
-        boolean hasCachedData = !cache.getNowcastMap().isEmpty()
-                || !cache.getRainfallMap().isEmpty()
-                || !cache.getCityWeatherPanels().isEmpty();
-
-        if (hasCachedData) {
-            log.info(
-                    "H2 warm-up complete: nowcast={}, rainfall={}, warnings={}, cities={}",
-                    cache.getNowcastMap().size(),
-                    cache.getRainfallMap().size(),
-                    cache.getDistrictWarningMap().size(),
-                    cache.getCityWeatherPanels().size()
-            );
-            return;
-        }
-
-        log.info("No H2 snapshots found — fetching from IMD APIs");
-        refreshService.refreshAllFromImd();
+        weatherRefreshExecutor.execute(() -> {
+            log.info("Background refresh: fetching all weather APIs and updating H2");
+            try {
+                refreshService.refreshAllFromImd();
+                log.info("Background refresh completed");
+            } catch (Exception ex) {
+                log.error("Background weather API refresh failed: {}", ex.getMessage(), ex);
+            }
+        });
     }
 }

@@ -157,7 +157,7 @@ const initCityWeatherAccordion = async () => {
         }
         const items = await response.json();
         if (!items.length) {
-            root.innerHTML = `<p class="small text-secondary mb-0 py-2">No city weather data returned. Check IMD connectivity or enable mock data.</p>`;
+            root.innerHTML = `<p class="small text-secondary mb-0 py-2">No station weather data returned yet.</p>`;
             return;
         }
         root.innerHTML = items.map((item, index) => buildPanel(item, index)).join("");
