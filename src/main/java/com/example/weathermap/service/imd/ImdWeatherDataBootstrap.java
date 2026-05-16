@@ -34,12 +34,15 @@ public class ImdWeatherDataBootstrap {
     public void warmCacheOnStartup() {
         log.info("Loading weather snapshots from H2 into memory");
         snapshotStore.loadAllIntoCache(cache);
+        var aws = cache.getAwsData();
+        int awsCount = aws.org().size() + aws.aws().size() + aws.arg().size();
         log.info(
-                "H2 cache ready: nowcast={}, rainfall={}, warnings={}, cities={}",
+                "H2 cache ready: nowcast={}, rainfall={}, warnings={}, cities={}, aws={}",
                 cache.getNowcastMap().size(),
                 cache.getRainfallMap().size(),
                 cache.getDistrictWarningMap().size(),
-                cache.getCityWeatherPanels().size()
+                cache.getCityWeatherPanels().size(),
+                awsCount
         );
 
         weatherRefreshExecutor.execute(() -> {

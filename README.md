@@ -1,87 +1,76 @@
 # NIC Weather App Service
 
-Spring Boot dashboard for Meghalaya district weather using public IMD APIs.
+Spring Boot dashboard for **Meghalaya** district weather using public [IMD](https://mausam.imd.gov.in/) APIs. Data is fetched on a schedule, stored in **H2**, and served to the UI and REST APIs from an in-memory cache.
 
 ## Features
 
-- Interactive district map (nowcast, rainfall, district-wise warning layers)
-- IMD city weather accordion (configurable station ids)
-- No database required — data is fetched from IMD on each request
+- Interactive district map: nowcast, rainfall, district warnings
+- City weather panels (Shillong, Tura)
+- AWS/ARG rainfall observations (grouped tables)
+- Scheduled refresh: nowcast every 3 hours; other datasets daily at 9 AM with 10-minute retries until fresh
 
 ## Stack
 
 - Java 17, Spring Boot 3.3
 - Thymeleaf + Bootstrap UI
-- Spring RestClient with configurable timeouts
-- Spring Boot Actuator (`/actuator/health`)
+- H2 (file-based) + JPA snapshots
+- Spring scheduling + Actuator (`/actuator/health`)
 
-## Run locally (mock data — default)
+## Quick start (development)
 
-By default the app uses the **`local` profile** with **mock IMD data** (no internet required). Good for testing the map, rainfall, warnings, and city accordion.
+Default profile is **`local`** (mock IMD data, no internet required):
 
 ```bash
 mvn spring-boot:run
 ```
 
-Open http://localhost:8080 — you should see coloured districts and Tura/Shillong city panels.
+Open http://localhost:8080
 
-On startup, logs show: `IMD MOCK MODE — using embedded test data`.
-
-### Profiles
-
-| Profile | Use |
-|---------|-----|
-| **`local`** (default) | All IMD endpoints mocked |
-| **`mock`** | Same as local |
-| **`prod`** | Live IMD APIs (`mock: false`) |
-
-Live IMD + schedulers:
+Live IMD APIs:
 
 ```bash
 mvn spring-boot:run -Dspring-boot.run.profiles=prod
-# or
-set SPRING_PROFILES_ACTIVE=prod
-mvn spring-boot:run
 ```
 
-## Production
+## Deployment
+
+**See [DEPLOYMENT.md](DEPLOYMENT.md)** for production build steps, environment variables, systemd/Windows service examples, H2 backup, reverse proxy, and troubleshooting.
+
+Minimal production run:
 
 ```bash
 mvn -q -DskipTests package
-java -jar target/nic-weather-app-service-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+set SPRING_PROFILES_ACTIVE=prod
+java -jar target/nic-weather-app-service-0.0.1-SNAPSHOT.jar
 ```
 
-Environment variables (optional):
+## Profiles
 
-| Variable | Description |
-|----------|-------------|
-| `SERVER_PORT` | HTTP port (default 8080) |
-| `IMD_CONNECT_TIMEOUT` | e.g. `15s` |
-| `IMD_READ_TIMEOUT` | e.g. `45s` |
+| Profile | Use |
+|---------|-----|
+| `local` (default) | Mock IMD data; faster schedulers for dev |
+| `prod` | Live IMD APIs; H2 console disabled |
 
 ## API endpoints
 
-## External IMD APIs (called by this service)
-
-| Data | Base URL | Query | Schedule |
-|------|----------|-------|----------|
-| **District nowcast** | `https://mausam.imd.gov.in/api/nowcast_district_api.php` | `?id={obj_id}` | **Every 3 hours** |
-| **District rainfall** | `https://mausam.imd.gov.in/api/districtwise_rainfall_api.php` | `?id={obj_id}` | **Daily** (01:00) |
-| **District warning** | `https://mausam.imd.gov.in/api/warnings_district_api.php` | `?id={obj_id}` | **Daily** (01:00) |
-| **City weather** | `https://city.imd.gov.in/api/cityweather.php` | `?id={station_id}` | **Daily** (01:00) |
-
-**District `obj_id` values** (Meghalaya): `1`–`7`, `575`, `672`, `673`, `674`  
-**City station ids**: `42516` (Shillong), `99489` (Tura)
-
-Schedulers: `weather.imd.scheduler` in `application.yml`. Override with `IMD_NOWCAST_CRON` / `IMD_DAILY_CRON`.
-
-## API endpoints (this app)
-
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/weather/nowcast/map` | Cached district nowcast for map |
-| GET | `/api/weather/rainfall/map` | Cached district rainfall for map |
-| GET | `/api/weather/district-warning/map` | Cached district warnings for map |
-| GET | `/api/weather/cities` | Cached city weather panels |
+| GET | `/api/weather/nowcast/map` | District nowcast for map |
+| GET | `/api/weather/rainfall/map` | District rainfall for map |
+| GET | `/api/weather/district-warning/map` | District warnings for map |
+| GET | `/api/weather/cities` | City weather panels |
+| GET | `/api/weather/aws-observations` | AWS/ARG grouped observations |
 | GET | `/api/weather/sync-status` | Last refresh times and scheduler cron |
 | GET | `/actuator/health` | Health check |
+
+## External IMD sources
+
+| Data | URL pattern | Schedule (prod) |
+|------|-------------|-----------------|
+| District nowcast | `nowcast_district_api.php?id={obj_id}` | Every 3 hours |
+| District rainfall | `districtwise_rainfall_api.php?id={obj_id}` | Daily 09:00 |
+| District warning | `warnings_district_api.php?id={obj_id}` | Daily 09:00 |
+| City weather | `cityweather.php?id={station_id}` | Daily 09:00 |
+| AWS data | `aws_data_api.php?id={station_id}` | Daily 09:00 |
+
+District `obj_id` values and station ids are configured in `src/main/resources/application.yml`.

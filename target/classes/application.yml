@@ -101,10 +101,10 @@ weather:
       enabled: true
       # Every 3 hours (00:00, 03:00, 06:00, …)
       nowcast-cron: ${IMD_NOWCAST_CRON:0 0 0/3 * * *}
-      # Daily at 09:00 with freshness retries every 5 min (up to 3 hours)
+      # Daily at 09:00; if data date ≠ today, retry every 10 min until fresh (then wait until next 9 AM)
       daily-cron: ${IMD_DAILY_CRON:0 0 9 * * *}
-      daily-retry-interval-ms: ${IMD_DAILY_RETRY_MS:300000}
-      daily-max-retries: ${IMD_DAILY_MAX_RETRIES:36}
+      daily-retry-interval-ms: ${IMD_DAILY_RETRY_MS:600000}
+      daily-max-retries: ${IMD_DAILY_MAX_RETRIES:144}
 
 logging:
   level:

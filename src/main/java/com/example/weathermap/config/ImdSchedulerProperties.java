@@ -16,13 +16,13 @@ public record ImdSchedulerProperties(
             nowcastCron = "0 0 0/3 * * *";
         }
         if (dailyCron == null || dailyCron.isBlank()) {
-            dailyCron = "0 0 1 * * *";
+            dailyCron = "0 0 9 * * *";
         }
         if (dailyRetryIntervalMs <= 0) {
-            dailyRetryIntervalMs = 300_000L;
+            dailyRetryIntervalMs = 600_000L;
         }
         if (dailyMaxRetries <= 0) {
-            dailyMaxRetries = 36;
+            dailyMaxRetries = 144;
         }
     }
 }

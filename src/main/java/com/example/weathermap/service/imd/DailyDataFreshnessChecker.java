@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -19,8 +20,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * At 9 AM the daily scheduler trigger fires. This component attempts to
  * fetch daily data and checks whether the date field in the response
  * matches today's date. If not (the API hasn't published today's data yet),
- * it schedules a retry every {@code dailyRetryIntervalMs} milliseconds until
- * fresh data arrives or {@code dailyMaxRetries} is exhausted.
+ * it retries every {@code dailyRetryIntervalMs} (default 10 minutes) until
+ * fresh data arrives or {@code dailyMaxRetries} is exhausted; the next run is
+ * the following day at 9 AM via {@code daily-cron}.
  */
 @Component
 public class DailyDataFreshnessChecker {
