@@ -445,6 +445,14 @@ const injectInlineSvg = async () => {
     if (!svgElement) {
         throw new Error(`Map SVG invalid or blocked — check URL: ${url}`);
     }
+    const svgWidth = parseFloat(svgElement.getAttribute("width")) || 800;
+    const svgHeight = parseFloat(svgElement.getAttribute("height")) || 533;
+    if (!svgElement.getAttribute("viewBox")) {
+        svgElement.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+    }
+    svgElement.removeAttribute("width");
+    svgElement.removeAttribute("height");
+    svgElement.setAttribute("preserveAspectRatio", "xMidYMid meet");
     svgElement.setAttribute("id", "district-map");
     svgElement.setAttribute("role", "img");
     svgElement.setAttribute("aria-label", "District weather map");

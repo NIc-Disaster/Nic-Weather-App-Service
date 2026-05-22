@@ -96,25 +96,38 @@ body {
 
 .map-shell {
     border-radius: 1rem;
-    overflow: hidden;
     border: 1px solid #dbe4f0;
+    overflow: visible;
 }
 
 .map-object {
     width: 100%;
-    min-height: 520px;
+    min-height: 0;
+    aspect-ratio: 800 / 533;
+    max-height: min(72vh, 640px);
     background: #f4f7fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
 }
 
-#district-map-container svg {
+#district-map-container {
     width: 100%;
-    height: auto;
-    display: block;
+    max-width: 100%;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+#district-map-container svg,
 #district-map {
     width: 100%;
     height: auto;
+    max-width: 100%;
+    max-height: min(72vh, 640px);
+    display: block;
 }
 
 #district-map .district path {
@@ -500,4 +513,84 @@ body {
 
 .aws-observations-panel {
     border: 1px solid #e2e8f0;
+}
+
+/* --- Responsive: mobile & tablet --- */
+@media (max-width: 991.98px) {
+    .dashboard-hero {
+        padding: 1rem 1.1rem;
+    }
+
+    .dashboard-hero .hero-title {
+        font-size: clamp(1.15rem, 4.5vw, 1.5rem);
+    }
+
+    .dashboard-hero .hero-subtitle {
+        font-size: 0.875rem;
+    }
+
+    .map-object {
+        max-height: min(65vh, 520px);
+    }
+
+    #district-map-container svg,
+    #district-map {
+        max-height: min(65vh, 520px);
+    }
+
+    #district-map .district text {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    main.container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .dashboard-menu {
+        gap: 0.35rem !important;
+    }
+
+    .dashboard-menu .menu-pill {
+        font-size: 0.72rem;
+        padding: 0.38rem 0.7rem;
+    }
+
+    .city-weather-panel {
+        width: min(14rem, 88vw);
+        max-width: 88vw;
+    }
+
+    .city-weather-panel.expanded {
+        width: min(100%, calc(100vw - 1.5rem));
+        max-width: calc(100vw - 1.5rem);
+    }
+
+    .map-object {
+        aspect-ratio: 800 / 533;
+        max-height: none;
+    }
+
+    #district-map-container svg,
+    #district-map {
+        max-height: none;
+    }
+
+    #district-map .district text {
+        font-size: 11px;
+    }
+
+    #district-map .district path {
+        stroke-width: 1.5;
+    }
+
+    .rainfall-legend,
+    .warning-legend,
+    .aws-legends {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.35rem;
+    }
 }
